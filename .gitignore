@@ -27,6 +27,20 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+#User Defined
+log/
+results/
+saved_checkpoints/
+pretrained_models/
+saved_models/
+data/
+data
+.DS_Store
+*.out
+*.ipynb
+*.sh
+*.json
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
