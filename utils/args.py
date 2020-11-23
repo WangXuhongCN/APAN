@@ -6,8 +6,7 @@ def get_args():
     parser = argparse.ArgumentParser('asynTGN')
     parser.add_argument('-d', '--data', type=str, choices=["wikipedia", "reddit", "alipay"], help='Dataset name (eg. wikipedia or reddit)',
                         default='wikipedia')
-    parser.add_argument('--tasks', type=str, default="LP", choices=["LP", "EC", "NC"], help='task name "EC", "NC", "LP"')
-    parser.add_argument('--norm', type=str, default="None", choices=["LayerNorm", "BatchNorm", "None"], help='How to Norm data')
+    parser.add_argument('--tasks', type=str, default="LP", choices=["LP", "EC", "NC"], help='task name link prediction, edge or node classification')
     parser.add_argument('--bs', type=int, default=200, help='Batch_size')
     parser.add_argument('--prefix', type=str, default='APAN', help='Prefix to name the checkpoints')
     parser.add_argument('--n_mail', type=int, default=10, help='Number of neighbors to sample')
@@ -21,36 +20,19 @@ def get_args():
     parser.add_argument('--seed', type=int, default=-1, help='Random Seed')
     parser.add_argument('--patience', type=int, default=5, help='Patience for early stopping')
     parser.add_argument('--dropout', type=float, default=0.1, help='Dropout probability')
-    parser.add_argument('--edgedrop', type=float, default=0., help='Dropout probability')
-    parser.add_argument('--eventdrop', type=float, default=0., help='Dropout probability')
     parser.add_argument('--gpu', type=int, default=0, help='Idx for the gpu to use')
-    parser.add_argument('--event_dropout', type=float, default=0., help='mem_dropout')
     parser.add_argument('--warmup', action='store_true', help='')
     parser.add_argument('--feat_dim', type=int, default=172, help='Dimensions of the node embedding')
-    parser.add_argument('--time_dim', type=int, default=172, help='Dimensions of the memory for each user')
     parser.add_argument('--uniform', action='store_true',
                         help='take uniform sampling from temporal neighbors')
     parser.add_argument('--balance', action='store_true',
                         help='use fraud user sampling when doing EC or NC tasks')
     parser.add_argument('--pretrain', action='store_true',
-                        help='use linkpred task as pretrain task')                        
+                        help='use linkpred task model as pretrain model to learn EC or NC')                        
     parser.add_argument('--no_time', action='store_true',
                         help='do not use time embedding')
     parser.add_argument('--no_pos', action='store_true',
-                        help='do not use position embedding')
-    parser.add_argument('--no_dist', action='store_true',
-                        help='do not use distance embedding')
-    parser.add_argument('--use_opps_aggr', action='store_true',
-                        help='do not use oppsite node')                        
-    #   parser.add_argument('--embedding_module', type=str, default="graph_attention", choices=[
-    #   "graph_attention", "graph_sum", "identity", "time"], help='Type of embedding module')
-    #   parser.add_argument('--emb_updater', type=str, default="identity", choices=["GRU", "identity"], help='Type of embedding updater')
-    #   parser.add_argument('--message_function', type=str, default="mlp", choices=["mlp", "identity"], help='Type of message function')
-    #   parser.add_argument('--msg_aggregator', type=str, default="last", help='Type of message '
-    #                                                                           'aggregator')
-    #   parser.add_argument('--memory_update_at_end', action='store_true',
-    #                       help='Whether to update memory at the end or at the start of the batch')
-    #   #
+                        help='do not use position embedding')                
 
     try:
         args = parser.parse_args()
@@ -63,7 +45,7 @@ def get_args():
             args.feat_dim = 172
         args.no_time = True
         #args.no_pos = True
-        # args.use_opps_aggr = True
+
     except:
         parser.print_help()
         sys.exit(0)

@@ -5,20 +5,11 @@ import random
 
 class TemporalEdgeCollator(dgl.dataloading.EdgeCollator):
     def __init__(self, g, eids, block_sampler, g_sampling=None, exclude=None,
-                 reverse_eids=None, reverse_etypes=None, negative_sampler=None, eventdrop=0):
+                 reverse_eids=None, reverse_etypes=None, negative_sampler=None):
         super(TemporalEdgeCollator, self).__init__(g, eids, block_sampler, g_sampling, exclude,
                  reverse_eids, reverse_etypes, negative_sampler)
-        self.eventdrop = eventdrop
-
 
     def collate(self, items):
-        #print('before', self.block_sampler.ts)
-        if self.eventdrop - 0 > 1e-6:
-            len_items = len(items)
-            n_drop = int(len_items*self.eventdrop)
-            s_idx = np.random.randint(len_items)
-            e_idx = min(len_items, s_idx+n_drop)
-            items = items[:s_idx] + items[e_idx:]
 
         current_ts = self.g.edata['timestamp'][items[-1]]  # only sample edges before current timestamp
         self.block_sampler.ts = current_ts
@@ -73,7 +64,7 @@ class frauder_sampler():
         
         if num_fraud > bs:
             
-            idx[random.sample(list(range(num_fraud)), num_fraud-bs)] = False # 只采样一部分fraud event
+            idx[random.sample(list(range(num_fraud)), num_fraud-bs)] = False # sampling fraud event
             
         fraud_eid = self.fraud_eid[idx]
         

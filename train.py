@@ -6,7 +6,7 @@ import psutil
 import numpy as np
 from model import Msg2Mail, Encoder, Decoder
 from dataloader import dataloader, frauder_sampler
-from utils import set_logger, result2csv, EarlyStopMonitor, get_current_ts, get_args, set_random_seeds, GradualWarmupScheduler
+from utils import set_logger, EarlyStopMonitor, get_current_ts, get_args, set_random_seeds, GradualWarmupScheduler
 from eval import eval_epoch
 from pathlib import Path
 
@@ -31,11 +31,9 @@ def train(args, logger):
     efeat_dim = g.edata['feat'].shape[1]
     nfeat_dim = efeat_dim
 
-    # feat || position info || time info = featdim + 2 
-    # g.ndata['last_update'] = torch.zeros((g.num_nodes()), dtype=torch.float32) 
-    # g.ndata['mail'] = torch.zeros((g.num_nodes(), args.n_mail, args.feat_dim+2), dtype=torch.float32) 
+
     train_loader, val_loader, test_loader, num_val_samples, num_test_samples = dataloader(args, g)
-    # num_batch = len(train_loader) // args.bs
+
 
     encoder = Encoder(args, nfeat_dim, n_head=args.n_head, dropout=args.dropout).to(device)
     decoder = Decoder(args, nfeat_dim).to(device)
@@ -49,7 +47,7 @@ def train(args, logger):
         optimizer.zero_grad()
         optimizer.step()
     loss_fcn = torch.nn.BCEWithLogitsLoss()
-    #loss_fcn = torch.nn.BCELoss()
+
     loss_fcn = loss_fcn.to(device)
 
     early_stopper = EarlyStopMonitor(logger=logger, max_round=args.patience, higher_better=True)
@@ -70,11 +68,11 @@ def train(args, logger):
         logger.info('start {} epoch, current optim lr is {}'.format(epoch, optimizer.param_groups[0]['lr']))
         for batch_idx, (input_nodes, pos_graph, neg_graph, blocks, frontier, current_ts) in enumerate(train_loader):
             
-            # Mail Aggre
+
             pos_graph = pos_graph.to(device)
             neg_graph = neg_graph.to(device) if neg_graph is not None else None
             
-            # 这里加时间编码，放入encoder中
+
             if not args.no_time or not args.no_pos:
                 current_ts, pos_ts, num_pos_nodes = get_current_ts(args, pos_graph, neg_graph)
                 pos_graph.ndata['ts'] = current_ts
@@ -83,16 +81,11 @@ def train(args, logger):
             
             _ = dgl.add_reverse_edges(neg_graph) if neg_graph is not None else None
             emb, _ = encoder(dgl.add_reverse_edges(pos_graph), _, num_pos_nodes)
-            # emb, _ = encoder(pos_graph.ndata['feat'], pos_graph.ndata['mail'], pos_graph.ndata['ts'], pos_graph.ndata['last_update'])
             if batch_idx != 0:
                 if 'LP' not in args.tasks and args.balance:
                     neg_graph = fraud_sampler.sample_fraud_event(g, args.bs//5, current_ts.max().cpu()).to(device)
                 logits, labels = decoder(emb, pos_graph, neg_graph)
 
-                    # fraud_logits = decoder.edgeclaslayer(fraud_emb)
-                    # fraud_labels = torch.ones(args.bs).to(device)
-                    # logits = torch.cat([logits, fraud_logits])
-                    # labels = torch.cat([labels, fraud_labels])
                 loss = loss_fcn(logits, labels)
                 
                 optimizer.zero_grad()
@@ -139,15 +132,13 @@ def train(args, logger):
             decoder.load_state_dict(torch.load(MODEL_SAVE_PATH+get_model_name('Decoder')))
 
             test_result = [early_stopper.best_ap, early_stopper.best_auc, early_stopper.best_acc, early_stopper.best_loss]
-            result2csv(test_result, early_stopper.best_epoch, args, task_time, mode='test')
             break
 
         test_ap, test_auc, test_acc, test_loss = eval_epoch(args, logger, g, test_loader, encoder, decoder, msg2mail, loss_fcn, device, num_test_samples)
         logger.info('Test {} Task | ap: {:.4f} | auc: {:.4f} | acc: {:.4f} | Loss: {:.4f}'.format(args.tasks, test_ap, test_auc, test_acc, test_loss))
         test_result = [test_ap, test_auc, test_acc, test_loss]
-        result2csv(test_result, early_stopper.best_epoch, args, task_time, mode='val')
 
-        if early_stopper.best_epoch == epoch: # 如果当前epoch是历史最好的，就保存
+        if early_stopper.best_epoch == epoch: 
             early_stopper.best_ap = test_ap
             early_stopper.best_auc = test_auc
             early_stopper.best_acc = test_acc

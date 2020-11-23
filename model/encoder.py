@@ -10,65 +10,39 @@ class Encoder(nn.Module):
 
         self.attn_aggr = mail_attn_agger(emb_dim, n_head, dropout)
         self.time_encoder = TimeEncode(emb_dim)
-        len_mail = args.n_mail if not self.args.use_opps_aggr else args.n_mail*2
+        len_mail = args.n_mail
         self.pos_encoder = PosEncode(emb_dim, len_mail)
         self.merger = MergeLayer((emb_dim)*2, emb_dim, dropout=dropout)
         self.use_mask = use_mask
 
     def forward(self, pos_graph, neg_graph, num_pos_nodes):
-        # feat、mail 加上时间emb和距离emb
-        #
-        if self.args.use_opps_aggr:
-            pos_graph.update_all(fn.copy_u('mail','m'), fn.mean('m','opposite_mail'))
-            pos_graph.apply_nodes(mails_cat)
 
-            neg_graph.ndata['feat'] = pos_graph.ndata['feat']
-            neg_graph.ndata['mail'] = pos_graph.ndata['mail']
-            neg_graph.update_all(fn.copy_u('mail','m'), fn.mean('m','opposite_mail'))
-            neg_graph.apply_nodes(mails_cat)
 
-            mail = torch.cat([pos_graph.ndata['cat_mail'][:num_pos_nodes], neg_graph.ndata['cat_mail'][num_pos_nodes:]])
-            #mail = pos_graph.ndata['cat_mail']
-        else:
-            mail = pos_graph.ndata['mail']
-        # neg_emb = neg_graph.edata['LP_emb']        
-        # pos_graph.apply_edges(linkpred_concat)
-        # pos_emb = pos_graph.edata['LP_emb']
-
-        #print(torch.where(torch.sum(pos_graph.ndata['cat_mail'],(1,2))==0)[0].shape)
+        mail = pos_graph.ndata['mail']
 
         mask = None
         if self.use_mask:
             mask = (mail.mean(2)==0).bool()
-            # if mask.sum().item() == 0:
             mask[:,0] = 0
             
         feat = pos_graph.ndata['feat']
 
         joined_mail = mail[:,:,:-2]
 
-        if not self.args.no_time: # 这里加了时间emb反而会降低效果，肯定是时间信息有问题，或者是编码有问题
+        if not self.args.no_time: 
             ts = pos_graph.ndata['ts']
             last_update = pos_graph.ndata['last_update']
             mail_time = mail[:,:,-2]
             delta_t_msg = ts.unsqueeze(1) - mail_time
             time_emb_msg = self.time_encoder(delta_t_msg)
-            #joined_mail = torch.cat([joined_mail, time_emb_msg],2)
             joined_mail = joined_mail + time_emb_msg
             delta_t_feat =  ts.unsqueeze(1) - last_update.unsqueeze(1)
             time_emb_feat = self.time_encoder(delta_t_feat)
             feat = feat + time_emb_feat.squeeze()
-            #feat = torch.cat([feat, time_emb_feat.squeeze()],1)
         if not self.args.no_pos:
             mail_time = mail[:,:,-2]
             pos_emb_msg = self.pos_encoder(mail_time)
-            #joined_mail = torch.cat([joined_mail, pos_emb_msg],2)
             joined_mail = joined_mail + pos_emb_msg
-
-        # if not self.args.no_dist:
-        #     dist_code = mail[:,:,-1]
-        #     dist_emb = self.loc_encoder(loc_code)
-        #     joined_mail = joined_mail + loc_emb
         
         attn_output, attn_weight = self.attn_aggr(feat, joined_mail, mask)
         attn_output = self.merger(feat, attn_output)
@@ -95,8 +69,7 @@ class mail_attn_agger(nn.Module):
         return attn_output, attn_weight
 
 class TimeEncode(torch.nn.Module):
-  # 这种相对编码无法编码前后关系，以后可以改进，参考《Encoding Word Oder In Complex Embeddings》 
-  # 但是这种改进方法会增加参数量 https://zhuanlan.zhihu.com/p/121126531
+
     def __init__(self, dimension):
         super(TimeEncode, self).__init__()
 
@@ -107,7 +80,6 @@ class TimeEncode(torch.nn.Module):
                                         .float().reshape(dimension, -1))
         self.w.bias = torch.nn.Parameter(torch.zeros(dimension).float())
 
-        #self.norm = torch.nn.BatchNorm2d(dimension)
 
     def forward(self, t):
         # t has shape [batch_size, seq_len]
@@ -140,7 +112,6 @@ class MergeLayer(torch.nn.Module):
         self.fc2 = nn.Linear(hidden_dim, out_dim)
         self.dropout = nn.Dropout(p=dropout, inplace=True)
         self.relu = nn.ReLU()
-        #self.tanh = torch.nn.Tanh()
 
         # torch.nn.init.xavier_normal_(self.fc1.weight)
         # torch.nn.init.xavier_normal_(self.fc2.weight)

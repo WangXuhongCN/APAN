@@ -5,7 +5,7 @@ import numpy as np
 import dgl
 import time
 # from args import get_args
-from utils import result2csv, get_current_ts, get_args
+from utils import get_current_ts, get_args
 
 def eval_epoch(args, logger, g, dataloader, encoder, decoder, msg2mail, loss_fcn, device, num_samples):
 
@@ -15,8 +15,7 @@ def eval_epoch(args, logger, g, dataloader, encoder, decoder, msg2mail, loss_fcn
     logits_all = torch.zeros((num_samples))
     
     attn_weight_all = torch.zeros((num_samples, args.n_mail))
-    # edgecls_ap, edgecls_auc, edgecls_acc = 0, 0, 0  
-    # nodecls_ap, nodecls_auc, nodecls_acc = 0, 0, 0
+
     m_loss = []
     m_infer_time = []
     with torch.no_grad():
@@ -41,7 +40,7 @@ def eval_epoch(args, logger, g, dataloader, encoder, decoder, msg2mail, loss_fcn
             start = time.time()
             emb, attn_weight = encoder(dgl.add_reverse_edges(pos_graph), _, num_pos_nodes)
             attn_weight_all[start_idx:end_idx] = attn_weight[:n_sample]
-            #emb, _ = encoder(pos_graph.ndata['feat'], pos_graph.ndata['mail'], current_ts, pos_graph.ndata['last_update'])
+           
             logits, labels = decoder(emb, pos_graph, neg_graph)
             end = time.time() - start
             m_infer_time.append(end)
@@ -53,13 +52,7 @@ def eval_epoch(args, logger, g, dataloader, encoder, decoder, msg2mail, loss_fcn
                 g.ndata['last_update'][pos_graph.ndata[dgl.NID][:num_pos_nodes]] = pos_ts.to('cpu')
             g.ndata['feat'][pos_graph.ndata[dgl.NID]] = emb.to('cpu')
             g.ndata['mail'][input_nodes] = mail            
-            # if logits.shape[1] == 2:
-            #     logits = logits.softmax()
-            #     logits, labels = logits[:,1], labels[:,1]
-            #     pred = torch.argmax(logits, dim=1)
-            # else:
-            #logits = logits.sigmoid()
-            
+
             
             if 'LP' in args.tasks:
                 pred = logits.sigmoid() > 0.5
@@ -88,10 +81,6 @@ def eval_epoch(args, logger, g, dataloader, encoder, decoder, msg2mail, loss_fcn
     encoder.train()
     decoder.train()
     return ap, auc, acc, np.mean(m_loss)
-    # return  [np.mean(linkpred_ap), np.mean(linkpred_auc), np.mean(linkpred_acc)], \
-    #       [edgecls_ap, edgecls_auc, edgecls_acc], \
-    #       [nodecls_ap, nodecls_auc, nodecls_acc], np.mean(m_loss)
-
 
 def get_TPR_FPR_metrics(fprs, tprs, thresholds):
     FPR_limits=torch.tensor([0.0001, 0.0002, 0.0003, 0.0005, 0.0008, 0.001, 0.002, 0.003, 0.005, 0.008, 0.01])

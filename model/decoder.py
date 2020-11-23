@@ -93,41 +93,34 @@ class LinkPredLayer(nn.Module):
         nn.init.xavier_normal_(self.fc2.weight)
 
     def forward(self, h):
-        #h = self.norm(h)
         h = self.dropout(h)
         h = self.fc1(h)
-        # #这里加norm反而影响效果
         h = self.act(h)
-        #h = self.dropout(h)
         h = self.fc2(h)
-        return h #.log_softmax(dim=-1)
+        return h 
 
 class EdgeClasLayer(nn.Module):
     def __init__(self, in_dim, class_dim, dropout=0.1):
         super().__init__()
         hidden_dim = in_dim//2
         self.fc1 = nn.Linear(in_dim, hidden_dim)
-        #self.norm = nn.BatchNorm1d(hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim//2)
         self.out = nn.Linear(hidden_dim//2, class_dim)
         self.act = nn.ReLU()
         self.dropout = nn.Dropout(p=dropout, inplace=True)
 
-        # nn.init.xavier_normal_(self.fc1.weight)
-        # nn.init.xavier_normal_(self.fc2.weight)
+
 
     def forward(self, h):
-        #h = torch.cat([u, v, e], dim=1)
         h = self.dropout(h)
         h = self.fc1(h)
-        #h = self.norm(h)
         h = self.act(h)
         h = self.dropout(h)
         h = self.fc2(h)
         h = self.act(h)
         h = self.dropout(h)
         h = self.out(h)
-        return h #.log_softmax(dim=-1)
+        return h 
 
 
 class NodeClasLayer(nn.Module):
@@ -135,7 +128,6 @@ class NodeClasLayer(nn.Module):
         super().__init__()
         hidden_dim = in_dim//2
         self.fc1 = nn.Linear(in_dim, hidden_dim)
-        self.norm = nn.BatchNorm1d(hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim//2)
         self.out = nn.Linear(hidden_dim//2, class_dim)
         self.act = nn.ReLU()
@@ -148,13 +140,11 @@ class NodeClasLayer(nn.Module):
     def forward(self, h):
         h = self.dropout(h)
         h = self.fc1(h)
-        #h = self.norm(h)
         h = self.act(h)
         h = self.dropout(h)
         h = self.fc2(h)
-        #h = self.norm(h)
         h = self.act(h)
         h = self.dropout(h)
         h = self.out(h)
 
-        return h #.log_softmax(dim=-1)
+        return h

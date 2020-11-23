@@ -4,12 +4,7 @@ from dataloader import MultiLayerTemporalNeighborSampler, TemporalEdgeCollator
 
 def dataloader(args, g):
     origin_num_edges = g.num_edges()//2
-    # if args.tasks != 'LP': 
-    #     # I know it is strange, but TGAT model does not use val dataset in node classification task.
-    #     # https://github.com/StatsDLMathsRecomSys/Inductive-representation-learning-on-temporal-graphs/blob/master/learn_node.py
-    #     train_eid = torch.arange(0, int(0.85 * origin_num_edges))
-    #     test_eid = val_eid = torch.arange(int(0.85 * origin_num_edges), origin_num_edges)
-    # else:
+
     train_eid = torch.arange(0, int(0.7 * origin_num_edges))
     val_eid = torch.arange(int(0.7 * origin_num_edges), int(0.85 * origin_num_edges))
     test_eid = torch.arange(int(0.85 * origin_num_edges), origin_num_edges)
@@ -20,7 +15,7 @@ def dataloader(args, g):
     negative_sampler = dgl.dataloading.negative_sampler.Uniform(1) if 'LP' in args.tasks else None
 
     sampler = MultiLayerTemporalNeighborSampler(args, [args.n_degree, args.n_degree], return_eids=False)
-    train_collator = TemporalEdgeCollator(g, train_eid, sampler, exclude=exclude, reverse_eids=reverse_eids, negative_sampler=negative_sampler, eventdrop=args.eventdrop)
+    train_collator = TemporalEdgeCollator(g, train_eid, sampler, exclude=exclude, reverse_eids=reverse_eids, negative_sampler=negative_sampler)
     
     train_loader = torch.utils.data.DataLoader(
                         train_collator.dataset, collate_fn=train_collator.collate,
