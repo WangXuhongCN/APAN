@@ -14,17 +14,18 @@ def dataloader(args, g):
 
     negative_sampler = dgl.dataloading.negative_sampler.Uniform(1) if 'LP' in args.tasks else None
 
-    sampler = MultiLayerTemporalNeighborSampler(args, [args.n_degree, args.n_degree], return_eids=False)
-    train_collator = TemporalEdgeCollator(g, train_eid, sampler, exclude=exclude, reverse_eids=reverse_eids, negative_sampler=negative_sampler)
+    fanouts = [args.n_degree for _ in range(args.n_layer)]
+    sampler = MultiLayerTemporalNeighborSampler(args, fanouts, return_eids=False)
+    train_collator = TemporalEdgeCollator(args, g, train_eid, sampler, exclude=exclude, reverse_eids=reverse_eids, negative_sampler=negative_sampler, mode='train')
     
     train_loader = torch.utils.data.DataLoader(
                         train_collator.dataset, collate_fn=train_collator.collate,
                         batch_size=args.bs, shuffle=False, drop_last=False, num_workers=args.n_worker)
-    val_collator = TemporalEdgeCollator(g, val_eid, sampler, exclude=exclude, reverse_eids=reverse_eids, negative_sampler=negative_sampler)
+    val_collator = TemporalEdgeCollator(args, g, val_eid, sampler, exclude=exclude, reverse_eids=reverse_eids, negative_sampler=negative_sampler)
     val_loader = torch.utils.data.DataLoader(
                         val_collator.dataset, collate_fn=val_collator.collate,
                         batch_size=args.bs, shuffle=False, drop_last=False, num_workers=args.n_worker)
-    test_collator = TemporalEdgeCollator(g, test_eid, sampler, exclude=exclude, reverse_eids=reverse_eids, negative_sampler=negative_sampler)
+    test_collator = TemporalEdgeCollator(args, g, test_eid, sampler, exclude=exclude, reverse_eids=reverse_eids, negative_sampler=negative_sampler)
     test_loader = torch.utils.data.DataLoader(
                         test_collator.dataset, collate_fn=test_collator.collate,
                         batch_size=args.bs, shuffle=False, drop_last=False, num_workers=args.n_worker)
