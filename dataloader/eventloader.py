@@ -4,12 +4,22 @@ import numpy as np
 import random
 
 class TemporalEdgeCollator(dgl.dataloading.EdgeCollator):
-    def __init__(self, g, eids, block_sampler, g_sampling=None, exclude=None,
-                 reverse_eids=None, reverse_etypes=None, negative_sampler=None):
+    def __init__(self, args, g, eids, block_sampler, g_sampling=None, exclude=None,
+                 reverse_eids=None, reverse_etypes=None, negative_sampler=None, mode='val'):
         super(TemporalEdgeCollator, self).__init__(g, eids, block_sampler, g_sampling, exclude,
                  reverse_eids, reverse_etypes, negative_sampler)
+        
+        self.args = args
+        self.mode = mode
 
     def collate(self, items):
+        #print('before', self.block_sampler.ts)
+        if self.args.eventdrop - 0 > 1e-6 and self.mode == 'train':
+            len_items = len(items)
+            n_drop = int(len_items*self.args.eventdrop)
+            s_idx = np.random.randint(len_items)
+            e_idx = min(len_items, s_idx+n_drop)
+            items = items[:s_idx] + items[e_idx:]
 
         current_ts = self.g.edata['timestamp'][items[-1]]  # only sample edges before current timestamp
         self.block_sampler.ts = current_ts
@@ -19,7 +29,8 @@ class TemporalEdgeCollator(dgl.dataloading.EdgeCollator):
         else:
             input_nodes, pair_graph, neg_pair_graph, blocks = self._collate_with_negative_sampling(items)
 
-        self.block_sampler.frontiers[0].add_edges(*self.block_sampler.frontiers[1].edges())
+        for i in range(self.args.n_layer-1):
+            self.block_sampler.frontiers[0].add_edges(*self.block_sampler.frontiers[i+1].edges())
         frontier = dgl.reverse(self.block_sampler.frontiers[0])
 
         return input_nodes, pair_graph, neg_pair_graph, blocks, frontier, current_ts
@@ -64,10 +75,9 @@ class frauder_sampler():
         
         if num_fraud > bs:
             
-            idx[random.sample(list(range(num_fraud)), num_fraud-bs)] = False # sampling fraud event
+            idx[random.sample(list(range(num_fraud)), num_fraud-bs)] = False # 只采样一部分fraud event
             
         fraud_eid = self.fraud_eid[idx]
         
         fraud_graph = dgl.edge_subgraph(g, fraud_eid)
         return fraud_graph
-
