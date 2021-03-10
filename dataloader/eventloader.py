@@ -14,12 +14,6 @@ class TemporalEdgeCollator(dgl.dataloading.EdgeCollator):
 
     def collate(self, items):
         #print('before', self.block_sampler.ts)
-        if self.args.eventdrop - 0 > 1e-6 and self.mode == 'train':
-            len_items = len(items)
-            n_drop = int(len_items*self.args.eventdrop)
-            s_idx = np.random.randint(len_items)
-            e_idx = min(len_items, s_idx+n_drop)
-            items = items[:s_idx] + items[e_idx:]
 
         current_ts = self.g.edata['timestamp'][items[-1]]  # only sample edges before current timestamp
         self.block_sampler.ts = current_ts
