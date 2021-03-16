@@ -35,7 +35,7 @@ g.edata['timestamp'] = timestamp.repeat(2).squeeze()
 g.edata['feat'] = edge_feat.repeat(2,1).squeeze()
 
 print(g)
-save_graphs(f"./data/{args.data}.dgl", g)
+save_graphs(f"./data/{args.data}.bin", g)
 
 if args.new_node_count:
     origin_num_edges = g.num_edges()//2

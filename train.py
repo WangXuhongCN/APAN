@@ -26,7 +26,7 @@ def train(args, logger):
     
 
 
-    g = load_graphs(f"./data/{args.data}.dgl")[0][0]
+    g = load_graphs(f"./data/{args.data}.bin")[0][0]
     
     efeat_dim = g.edata['feat'].shape[1]
     nfeat_dim = efeat_dim

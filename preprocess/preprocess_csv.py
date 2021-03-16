@@ -15,9 +15,6 @@ def preprocess(args):
   if args.data == 'wikipedia' or args.data == 'reddit':
     PATH = ['./data/{}_raw.csv'.format(args.data)]
     feat_dim = 172
-  elif args.data == 'alipay':
-    PATH = ['./data/{}_raw.csv'.format(args.data)]
-    feat_dim = 101
   else:
     print('Please check the dataset name.')
 

@@ -3,8 +3,8 @@ import sys
 
 def get_args():
     ### Argument and global variables
-    parser = argparse.ArgumentParser('asynTGN')
-    parser.add_argument('-d', '--data', type=str, choices=["wikipedia", "reddit", "alipay"], help='Dataset name (eg. wikipedia or reddit)',
+    parser = argparse.ArgumentParser('APAN')
+    parser.add_argument('-d', '--data', type=str, choices=["wikipedia", "reddit", "red"], help='Dataset name (eg. wikipedia or reddit)',
                         default='wikipedia')
     parser.add_argument('--tasks', type=str, default="LP", choices=["LP", "EC", "NC"], help='task name link prediction, edge or node classification')
     parser.add_argument('--bs', type=int, default=200, help='Batch_size')

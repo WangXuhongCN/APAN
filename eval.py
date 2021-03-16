@@ -1,4 +1,4 @@
-from pytorch_lightning.metrics.functional import accuracy, auroc, average_precision, roc, f1_score
+from pytorch_lightning.metrics.functional import accuracy, auroc, average_precision, roc, f1
 import torch
 from model import Msg2Mail
 import numpy as np
@@ -39,7 +39,7 @@ def eval_epoch(args, logger, g, dataloader, encoder, decoder, msg2mail, loss_fcn
 
             start = time.time()
             emb, attn_weight = encoder(dgl.add_reverse_edges(pos_graph), _, num_pos_nodes)
-            attn_weight_all[start_idx:end_idx] = attn_weight[:n_sample]
+            #attn_weight_all[start_idx:end_idx] = attn_weight[:n_sample]
            
             logits, labels = decoder(emb, pos_graph, neg_graph)
             end = time.time() - start
@@ -53,28 +53,24 @@ def eval_epoch(args, logger, g, dataloader, encoder, decoder, msg2mail, loss_fcn
             g.ndata['feat'][pos_graph.ndata[dgl.NID]] = emb.to('cpu')
             g.ndata['mail'][input_nodes] = mail            
 
-            
+            labels = labels.long()
+            logits = logits.sigmoid()
             if 'LP' in args.tasks:
-                pred = logits.sigmoid() > 0.5
+                pred = logits > 0.5
                 m_ap.append(average_precision(logits, labels).cpu().numpy())
                 m_auc.append(auroc(logits, labels).cpu().numpy())
                 m_acc.append(accuracy(pred, labels).cpu().numpy())
             else:
-
                 labels_all[start_idx:end_idx] = labels
                 logits_all[start_idx:end_idx] = logits
             
     if 'LP' in args.tasks:
         ap, auc, acc = np.mean(m_ap), np.mean(m_auc), np.mean(m_acc)
     else:
-        pred_all = logits_all.sigmoid() > 0.5
+        pred_all = logits_all > 0.5
         ap = average_precision(logits_all, labels_all).cpu().item()
         auc = auroc(logits_all, labels_all).cpu().item()
         acc = accuracy(pred_all, labels_all).cpu().item()
-        if args.data == 'alipay':
-            fprs, tprs, thresholds = roc(logits_all, labels_all)
-            fpr_l, tpr_l, thres_l = get_TPR_FPR_metrics(fprs, tprs, thresholds)
-            print_tp_fp_thres(args.tasks, logger, fpr_l, tpr_l, thres_l)
         
     print('总推理时间', np.sum(m_infer_time))
     logger.info(attn_weight_all.mean(0))
