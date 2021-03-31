@@ -1,4 +1,7 @@
-# The Pytorch and DGL implement of the paper.
+# APAN: Asynchronous Propagation Attention Network for Real-time Temporal Graph Embedding
+
+## Key words:
+Graph Neural Network, Graph Embedding, Continuous-Time Dynamic Graph, Link Perdiction
 
 ## Requirements:
 pytorch>=1.5.0 DGL>=0.5.2 numpy>=1.19 python >= 3.6
