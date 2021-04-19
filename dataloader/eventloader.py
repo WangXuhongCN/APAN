@@ -15,7 +15,7 @@ class TemporalEdgeCollator(dgl.dataloading.EdgeCollator):
     def collate(self, items):
         #print('before', self.block_sampler.ts)
 
-        current_ts = self.g.edata['timestamp'][items[-1]]  # only sample edges before current timestamp
+        current_ts = self.g.edata['timestamp'][items[-1]]  # only sample edges before last timestamp in a batch
         self.block_sampler.ts = current_ts
         neg_pair_graph = None
         if self.negative_sampler is None:

@@ -11,7 +11,7 @@ def eval_epoch(args, logger, g, dataloader, encoder, decoder, msg2mail, loss_fcn
 
     m_ap, m_auc, m_acc = [[], [], []] if 'LP' in args.tasks else [0, 0, 0]
 
-    labels_all = torch.zeros((num_samples))
+    labels_all = torch.zeros((num_samples)).long()
     logits_all = torch.zeros((num_samples))
     
     attn_weight_all = torch.zeros((num_samples, args.n_mail))
@@ -71,6 +71,10 @@ def eval_epoch(args, logger, g, dataloader, encoder, decoder, msg2mail, loss_fcn
         ap = average_precision(logits_all, labels_all).cpu().item()
         auc = auroc(logits_all, labels_all).cpu().item()
         acc = accuracy(pred_all, labels_all).cpu().item()
+
+        fprs, tprs, thresholds = roc(logits_all, labels_all)
+        fpr_l, tpr_l, thres_l = get_TPR_FPR_metrics(fprs, tprs, thresholds)
+        print_tp_fp_thres(args.tasks, logger, fpr_l, tpr_l, thres_l)
         
     print('总推理时间', np.sum(m_infer_time))
     logger.info(attn_weight_all.mean(0))
