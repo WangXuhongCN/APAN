@@ -4,7 +4,7 @@
 Graph Neural Network, Graph Embedding, Continuous-Time Dynamic Graph, Link Perdiction
 
 ## Requirements:
-pytorch>=1.5.0 DGL>=0.5.2 numpy>=1.19 python >= 3.6
+pytorch>=1.5.0 DGL==0.5.2 numpy>=1.19 python >= 3.6
 
 ## Dataset and Preprocessing
 ### Download the public data
